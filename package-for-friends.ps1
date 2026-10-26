@@ -27,7 +27,10 @@ try {
     }
     if ($cert) {
         Set-AuthenticodeSignature -FilePath "$distDir\CS2ChatTranslator.exe" -Certificate $cert -HashAlgorithm SHA256 | Out-Null
-        Write-Host "      CS2ChatTranslator.exe sikeresen aláírva!"
+        if (Test-Path "$distDir\bin\KeySender.exe") {
+            Set-AuthenticodeSignature -FilePath "$distDir\bin\KeySender.exe" -Certificate $cert -HashAlgorithm SHA256 | Out-Null
+        }
+        Write-Host "      CS2ChatTranslator.exe és segédfájlok sikeresen aláírva!"
     }
 } catch {
     Write-Host "      Figyelem: Aláírás kihagyva (nem kritikus)."
@@ -101,7 +104,7 @@ chcp 65001 >nul
 title CS2 Chat Translator Indító
 cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path '%~dp0' -Recurse | Unblock-File" 2>nul
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~dp0CS2ChatTranslator.exe' -Verb RunAs" 2>nul || start "" "CS2ChatTranslator.exe"
+start "" "CS2ChatTranslator.exe"
 "@
 [System.IO.File]::WriteAllText("$distDir\Inditas.bat", $inditBat, [System.Text.Encoding]::UTF8)
 
