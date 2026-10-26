@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs & binaries
+dist/
+desktop-app/bin/
+desktop-app/obj/
+publish-selfcontained/
+
+# IDE / Editor configs
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs & temp files
+*.log
+console.log
+*.tmp
+*.bak
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

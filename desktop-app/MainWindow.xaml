@@ -1,0 +1,59 @@
+<Window x:Class="CS2ChatTranslator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        Title="CS2 Chat Translator" 
+        Height="600" Width="840"
+        MinHeight="140" MinWidth="360"
+        WindowStyle="None"
+        Background="#0B0B0C"
+        Foreground="#ECEEF2"
+        Topmost="True"
+        WindowStartupLocation="CenterScreen">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" 
+                      ResizeBorderThickness="6" 
+                      GlassFrameThickness="0" 
+                      CornerRadius="0" />
+    </WindowChrome.WindowChrome>
+
+    <!-- Main Container -->
+    <Border x:Name="WindowBorder" BorderBrush="#232732" BorderThickness="1" Background="#0B0B0C">
+        <Grid Background="#0B0B0C">
+            <!-- WebView2 Browser Host -->
+            <wv2:WebView2 x:Name="ChatWebView" 
+                          Visibility="Collapsed"/>
+
+            <!-- Loading / Error Overlay -->
+            <Grid x:Name="LoadingOverlay" Background="#0B0B0C" Visibility="Visible">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Background="#1A1C23" CornerRadius="12" Padding="28" Width="360" BorderBrush="#2A2E39" BorderThickness="1">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="🎮 CS2 Chat Translator" FontSize="18" FontWeight="Bold" 
+                                       Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="LoadingStatus" Text="Kapcsolódás a háttérszerverhez..." 
+                                       FontSize="13" Foreground="#9CA3AF" TextWrapping="Wrap" 
+                                       TextAlignment="Center" Margin="0,0,0,16"/>
+                            <ProgressBar x:Name="LoadingBar" IsIndeterminate="True" Height="4" 
+                                         Background="#2A2E39" Foreground="#F59E0B" Margin="0,0,0,16"/>
+                            <Button x:Name="BtnRetry" Content="Újrapróbálás" 
+                                     Background="#2563EB" Foreground="#FFFFFF" FontWeight="SemiBold"
+                                     BorderThickness="0" Padding="14,8" Cursor="Hand"
+                                     Visibility="Collapsed" Click="BtnRetry_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="6"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
