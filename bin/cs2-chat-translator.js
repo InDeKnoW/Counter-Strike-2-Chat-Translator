@@ -2458,7 +2458,7 @@ const INDEX_HTML = String.raw`<!doctype html>
   function updateStatus(s) {
     if (!s) return;
     if (typeof s.gameRunning === 'boolean') {
-      updateGameStatus(s.gameRunning);
+      if (!window.chrome || !window.chrome.webview) { updateGameStatus(s.gameRunning); }
       return;
     }
     statusEl.classList.remove('on', 'bad', 'off', 'warn');

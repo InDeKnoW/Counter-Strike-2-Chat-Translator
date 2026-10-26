@@ -371,9 +371,6 @@ public partial class MainWindow : Window
             bool isRunning = procs.Length > 0;
             foreach (var p in procs) p.Dispose();
 
-            if (!forceUpdate && _lastGameRunning == isRunning)
-                return;
-
             _lastGameRunning = isRunning;
             if (ChatWebView?.CoreWebView2 != null)
             {
