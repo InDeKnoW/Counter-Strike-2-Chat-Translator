@@ -1338,57 +1338,6 @@ const INDEX_HTML = String.raw`<!doctype html>
     color: var(--accent);
   }
 
-  /* Opacity Box */
-  .opacity-box {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 26px;
-    padding: 0 6px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 10px;
-    user-select: none;
-    flex-shrink: 0;
-  }
-  .opacity-icon {
-    font-size: 11px;
-    line-height: 1;
-    color: var(--muted);
-  }
-  .opacity-slider {
-    width: 55px;
-    height: 4px;
-    appearance: none;
-    -webkit-appearance: none;
-    background: #3a3a42;
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
-  }
-  .opacity-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid #1a1a1e;
-    cursor: pointer;
-    transition: transform 100ms;
-  }
-  .opacity-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-  }
-  .opacity-val {
-    min-width: 26px;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text);
-    text-align: right;
-  }
-
   /* Window Controls */
   .win-controls {
     display: inline-flex;
@@ -1438,8 +1387,6 @@ const INDEX_HTML = String.raw`<!doctype html>
   @media (max-width: 580px) {
     .phone-btn span { display: none; }
     .phone-btn { padding: 0 5px; }
-    .opacity-box { padding: 0 4px; }
-    .opacity-slider { width: 40px; }
   }
 
   .game-banner {
@@ -2012,11 +1959,6 @@ const INDEX_HTML = String.raw`<!doctype html>
       <span>📐 HUD</span>
     </button>
     <button class="tool-btn active" id="pinBtn" title="Mindig felül (Always on Top)">📌</button>
-    <div class="opacity-box" id="opacityBox" title="Ablak átlátszósága (15% - 100%)">
-      <span class="opacity-icon">🌓</span>
-      <input type="range" min="15" max="100" value="92" id="opacitySlider" class="opacity-slider" />
-      <span class="opacity-val" id="opacityVal">92%</span>
-    </div>
     <button class="phone-btn" id="phoneBtn" title="Telefonos csatlakozás (QR kód)">
       <span>📱 Telefon</span>
     </button>
@@ -2447,7 +2389,7 @@ const INDEX_HTML = String.raw`<!doctype html>
   const headerEl = document.querySelector('header');
   if (headerEl) {
     headerEl.addEventListener('mousedown', (e) => {
-      if (e.target.closest('button, input, select, textarea, a, .opacity-box, .icon-btn, .win-btn, .hud-btn, .phone-btn, .tool-btn')) {
+      if (e.target.closest('button, input, select, textarea, a, .icon-btn, .win-btn, .hud-btn, .phone-btn, .tool-btn')) {
         return;
       }
       if (e.button === 0 && window.chrome && window.chrome.webview) {
@@ -2456,43 +2398,11 @@ const INDEX_HTML = String.raw`<!doctype html>
     });
 
     headerEl.addEventListener('dblclick', (e) => {
-      if (e.target.closest('button, input, select, textarea, a, .opacity-box, .icon-btn, .win-btn, .hud-btn, .phone-btn, .tool-btn')) {
+      if (e.target.closest('button, input, select, textarea, a, .icon-btn, .win-btn, .hud-btn, .phone-btn, .tool-btn')) {
         return;
       }
       if (window.chrome && window.chrome.webview) {
         window.chrome.webview.postMessage({ type: 'toggleMaximize' });
-      }
-    });
-  }
-
-  // Opacity slider with localStorage persistence
-  const opacitySlider = document.getElementById('opacitySlider');
-  const opacityVal = document.getElementById('opacityVal');
-
-  try {
-    const savedAlpha = localStorage.getItem('cs2_chat_bg_alpha');
-    if (savedAlpha) {
-      const num = parseFloat(savedAlpha);
-      if (!isNaN(num) && num >= 0.15 && num <= 1.0) {
-        document.documentElement.style.setProperty('--bg-alpha', num.toFixed(2));
-        if (opacitySlider) opacitySlider.value = Math.round(num * 100);
-        if (opacityVal) opacityVal.textContent = Math.round(num * 100) + '%';
-        if (window.chrome && window.chrome.webview) {
-          window.chrome.webview.postMessage({ type: 'setOpacity', value: num });
-        }
-      }
-    }
-  } catch {}
-
-  if (opacitySlider) {
-    opacitySlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      if (opacityVal) opacityVal.textContent = val + '%';
-      const op = Math.max(0.15, Math.min(1.0, val / 100));
-      document.documentElement.style.setProperty('--bg-alpha', op.toFixed(2));
-      try { localStorage.setItem('cs2_chat_bg_alpha', op.toFixed(2)); } catch {}
-      if (window.chrome && window.chrome.webview) {
-        window.chrome.webview.postMessage({ type: 'setOpacity', value: op });
       }
     });
   }
@@ -2521,8 +2431,6 @@ const INDEX_HTML = String.raw`<!doctype html>
   if (!window.chrome || !window.chrome.webview) {
     if (winControls) winControls.classList.add('hidden');
     if (pinBtn) pinBtn.style.display = 'none';
-    const opacityBox = document.getElementById('opacityBox');
-    if (opacityBox) opacityBox.style.display = 'none';
   }
 
   if (winMinBtn) {
