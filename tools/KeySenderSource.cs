@@ -20,6 +20,7 @@ public class KeySender
     [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint uCode, uint uMapType);
     [DllImport("user32.dll")] private static extern short VkKeyScan(char ch);
     [DllImport("user32.dll")] private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
@@ -32,6 +33,9 @@ public class KeySender
     private const uint KEYEVENTF_SCANCODE = 0x0008;
     private const int SW_RESTORE = 9;
     private const byte VK_MENU = 0x12;
+
+    private const uint WM_KEYDOWN = 0x0100;
+    private const uint WM_KEYUP = 0x0101;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -164,7 +168,7 @@ public class KeySender
             {
                 if (GetForegroundWindow() == cs2Hwnd)
                 {
-                    Thread.Sleep(140);
+                    Thread.Sleep(120);
                     return true;
                 }
                 Thread.Sleep(15);
@@ -175,7 +179,7 @@ public class KeySender
         return GetForegroundWindow() == cs2Hwnd;
     }
 
-    public static void SendKey(char c)
+    public static void SendKey(IntPtr hwnd, char c)
     {
         short vkCode = VkKeyScan(c);
         byte vk = (byte)(vkCode & 0xFF);
@@ -186,21 +190,44 @@ public class KeySender
         ushort scan = (ushort)MapVirtualKey(vk, 0);
         if (char.ToLowerInvariant(c) == 'o' && scan == 0) scan = 0x18;
 
+        // 1. SendInput Scancode down
         INPUT[] downInput = new INPUT[1];
         downInput[0].type = INPUT_KEYBOARD;
         downInput[0].ki.wVk = 0;
         downInput[0].ki.wScan = scan;
         downInput[0].ki.dwFlags = KEYEVENTF_SCANCODE;
+        SendInput(1, downInput, Marshal.SizeOf(typeof(INPUT)));
 
+        // 2. keybd_event down
+        keybd_event(vk, (byte)scan, 0, UIntPtr.Zero);
+
+        // 3. PostMessage WM_KEYDOWN directly to CS2 window
+        if (hwnd != IntPtr.Zero)
+        {
+            IntPtr lParamDown = (IntPtr)(1 | (scan << 16));
+            PostMessage(hwnd, WM_KEYDOWN, (IntPtr)vk, lParamDown);
+        }
+
+        Thread.Sleep(75);
+
+        // 4. SendInput Scancode up
         INPUT[] upInput = new INPUT[1];
         upInput[0].type = INPUT_KEYBOARD;
         upInput[0].ki.wVk = 0;
         upInput[0].ki.wScan = scan;
         upInput[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-
-        SendInput(1, downInput, Marshal.SizeOf(typeof(INPUT)));
-        Thread.Sleep(65);
         SendInput(1, upInput, Marshal.SizeOf(typeof(INPUT)));
+
+        // 5. keybd_event up
+        keybd_event(vk, (byte)scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+        // 6. PostMessage WM_KEYUP directly to CS2 window
+        if (hwnd != IntPtr.Zero)
+        {
+            IntPtr lParamUp = (IntPtr)(1 | (scan << 16) | (1 << 30) | (1 << 31));
+            PostMessage(hwnd, WM_KEYUP, (IntPtr)vk, lParamUp);
+        }
+
         Thread.Sleep(40);
     }
 
@@ -228,7 +255,7 @@ public class KeySender
             }
 
             Console.WriteLine("[KeySender] Sending key: " + key);
-            SendKey(key);
+            SendKey(cs2Hwnd, key);
 
             return 0;
         }

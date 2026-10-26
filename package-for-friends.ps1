@@ -112,6 +112,12 @@ chcp 65001 >nul
 title CS2 Chat Translator Indító
 cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path '%~dp0' -Recurse | Unblock-File" 2>nul
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [CS2 Chat Translator] Rendszergazdai jogok kérése az in-game billentyűküldéshez...
+    powershell -NoProfile -Command "Start-Process '%~dp0CS2ChatTranslator.exe' -Verb RunAs"
+    exit /b
+)
 start "" "CS2ChatTranslator.exe"
 "@
 [System.IO.File]::WriteAllText("$distDir\Inditas.bat", $inditBat, [System.Text.Encoding]::UTF8)
