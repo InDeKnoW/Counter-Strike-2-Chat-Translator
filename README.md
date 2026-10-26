@@ -16,9 +16,6 @@ Valós idejű, kétirányú Counter-Strike 2 chat fordító és HUD overlay Wind
   - 4-lépcsős biztonsági hálózat: Közvetlen Google GTX $\rightarrow$ Google Clients5 $\rightarrow$ `google-translate-api-x` $\rightarrow$ MyMemory fallback.
   - **Beépített CS2 szleng- és callout szótár**: Kifejezetten a CIS/orosz játékszlengre optimalizálva (pl. *„дроп авик плз, один в коврах лоу хп”* $\rightarrow$ *„kérem dobja le az AWP-t, egyet a Palace-ban, alacsony HP”*).
   - 500-elemű LRU memória gyorsítótár a villámgyors (<50 ms) ismételt fordításokhoz.
-- **🌓 Hardveres Állítható Áttetszőség (15% – 100%)**:
-  - A fejlécben található csúszkával közvetlenül szabályozható a Windows 10/11 ablak átlátszósága.
-  - Megtartja a 100%-os egérkattintási és görgetési pontosságot a modern WebView2 felületen (nincs kattintási hiba).
 - **💬 Kétirányú Chat & Automatikus Beküldés a Játékba**:
   - **Bejövő fordítás**: A külföldi játékosok üzenetei automatikusan magyarul jelennek meg az ablakban.
   - **Kimenő küldés**: Az alkalmazás alján található beviteli sávba beírsz egy magyar mondatot, kiválasztod a célnyelvet (pl. orosz vagy angol) és a csatornát (Mindenki / Csapat), majd az Enter lenyomásakor a program lefordítja és az `o` bind segítségével azonnal beírja a CS2 chatbe.
