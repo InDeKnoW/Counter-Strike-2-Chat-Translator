@@ -13,7 +13,6 @@ public partial class MainWindow : Window
     private bool _isServerOnline = false;
     private bool _isHudMode = false;
     private bool? _lastGameRunning = null;
-    private double _currentOpacity = 0.92;
     private double _previousHeight = 600;
 
     private const int WM_GETMINMAXINFO = 0x0024;
@@ -60,19 +59,6 @@ public partial class MainWindow : Window
     private const uint SWP_NOMOVE = 0x0002;
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_SHOWWINDOW = 0x0040;
-
-    private const int GWL_EXSTYLE = -20;
-    private const int WS_EX_LAYERED = 0x00080000;
-    private const uint LWA_ALPHA = 0x00000002;
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
-    private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
-    private static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -231,14 +217,6 @@ public partial class MainWindow : Window
                             _isHudMode = isHud;
                             ApplyHudHeight(isHud);
                             break;
-
-                        case "setOpacity":
-                            if (root.TryGetProperty("value", out var valProp))
-                            {
-                                _currentOpacity = Math.Clamp(valProp.GetDouble(), 0.15, 1.0);
-                                ApplyWindowAlpha(_currentOpacity);
-                            }
-                            break;
                     }
                 }
                 catch { }
@@ -247,7 +225,6 @@ public partial class MainWindow : Window
             ChatWebView.NavigationCompleted += (s, e) =>
             {
                 CheckGameStatus(true);
-                ApplyWindowAlpha(_currentOpacity);
                 if (_isHudMode && ChatWebView?.CoreWebView2 != null)
                 {
                     _ = ChatWebView.CoreWebView2.ExecuteScriptAsync("if (window.setHudMode) window.setHudMode(true);");
@@ -279,15 +256,6 @@ public partial class MainWindow : Window
                 ReleaseCapture();
                 SendMessage(handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
             }
-        }
-        catch { }
-    }
-
-    private void ApplyWindowAlpha(double op)
-    {
-        try
-        {
-            this.Opacity = 1.0;
         }
         catch { }
     }
