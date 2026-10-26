@@ -74,23 +74,55 @@ public static class NativeKeySender
         public uint unused2;
     }
 
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
     private static IntPtr FindCs2Window()
     {
         try
         {
             var processes = Process.GetProcessesByName("cs2");
+            var pids = new System.Collections.Generic.HashSet<uint>();
             foreach (var p in processes)
             {
+                pids.Add((uint)p.Id);
                 if (p.MainWindowHandle != IntPtr.Zero)
                     return p.MainWindowHandle;
             }
+
+            IntPtr found = IntPtr.Zero;
+            if (pids.Count > 0)
+            {
+                EnumWindows((hWnd, lParam) =>
+                {
+                    GetWindowThreadProcessId(hWnd, out uint pid);
+                    if (pids.Contains(pid) && IsWindowVisible(hWnd))
+                    {
+                        found = hWnd;
+                        return false;
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+
+            if (found != IntPtr.Zero) return found;
         }
         catch { }
 
         IntPtr hwnd = FindWindow("SDL_app", "Counter-Strike 2");
         if (hwnd != IntPtr.Zero) return hwnd;
 
-        return FindWindow(null, "Counter-Strike 2");
+        hwnd = FindWindow(null, "Counter-Strike 2");
+        if (hwnd != IntPtr.Zero) return hwnd;
+
+        return FindWindow("Valve001", null);
     }
 
     private static bool FocusCs2Window(IntPtr cs2Hwnd)
@@ -139,7 +171,6 @@ public static class NativeKeySender
             {
                 if (GetForegroundWindow() == cs2Hwnd)
                 {
-                    // Give CS2 SDL3/RawInput loop time to activate after regaining focus
                     Thread.Sleep(120);
                     return true;
                 }
@@ -156,10 +187,14 @@ public static class NativeKeySender
         try
         {
             IntPtr cs2Hwnd = FindCs2Window();
-            if (cs2Hwnd == IntPtr.Zero)
-                return;
-
-            FocusCs2Window(cs2Hwnd);
+            if (cs2Hwnd != IntPtr.Zero)
+            {
+                FocusCs2Window(cs2Hwnd);
+            }
+            else
+            {
+                AllowSetForegroundWindow(-1);
+            }
 
             foreach (var keyStr in keys)
             {
@@ -176,6 +211,7 @@ public static class NativeKeySender
                 }
                 ushort scan = (ushort)MapVirtualKey(vk, 0);
 
+                // Send via DirectInput Scan Code + Virtual Key
                 INPUT[] downInput = new INPUT[1];
                 downInput[0].type = INPUT_KEYBOARD;
                 downInput[0].ki.wVk = 0;
@@ -189,8 +225,10 @@ public static class NativeKeySender
                 upInput[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
 
                 SendInput(1, downInput, Marshal.SizeOf(typeof(INPUT)));
-                Thread.Sleep(55);
+                keybd_event(vk, (byte)scan, 0, UIntPtr.Zero);
+                Thread.Sleep(75);
                 SendInput(1, upInput, Marshal.SizeOf(typeof(INPUT)));
+                keybd_event(vk, (byte)scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
                 Thread.Sleep(35);
             }
         }
