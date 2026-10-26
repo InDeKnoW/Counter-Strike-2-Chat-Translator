@@ -465,7 +465,7 @@ function writeChatCfg({ message, team = false }) {
 
 function pressBindKey() {
   if (process.platform === "win32") {
-    const keys = Array.from(new Set([BIND_KEY, "o", "l"])).filter(Boolean).join(" ");
+    const key = (BIND_KEY || "o").trim();
     const candidates = [
       path.join(__dirname, "KeySender.exe"),
       path.join(__dirname, "..", "bin", "KeySender.exe"),
@@ -493,7 +493,7 @@ function pressBindKey() {
     }
 
     if (targetExe) {
-      const cmd = isApp ? `"${targetExe}" --press-key ${keys}` : `"${targetExe}" ${keys}`;
+      const cmd = isApp ? `"${targetExe}" --press-key ${key}` : `"${targetExe}" ${key}`;
       execChild(cmd, { cwd: path.dirname(targetExe) }, (err, stdout) => {
         if (err) {
           log(sym.warn, chalk.yellow(`Key send error: ${err.message}`));
