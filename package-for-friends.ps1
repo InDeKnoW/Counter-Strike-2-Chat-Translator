@@ -33,8 +33,11 @@ try {
     Write-Host "      Figyelem: Aláírás kihagyva (nem kritikus)."
 }
 
-Write-Host "3. Fordító motor másolása (KeySender.exe nélkül - beépített native vezérlés)..."
+Write-Host "3. Fordító motor és billentyűküldő másolása..."
 Copy-Item "$rootDir\bin\cs2-chat-translator.js" "$distDir\bin\" -Force
+if (Test-Path "$rootDir\bin\KeySender.exe") {
+    Copy-Item "$rootDir\bin\KeySender.exe" "$distDir\bin\" -Force
+}
 Copy-Item "$rootDir\package.json" "$distDir\" -Force
 
 Write-Host "4. Beágyazott Node.exe másolása (önálló futtatáshoz)..."

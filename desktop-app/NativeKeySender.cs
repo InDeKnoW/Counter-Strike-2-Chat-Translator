@@ -14,28 +14,14 @@ public static class NativeKeySender
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
-    private static extern bool BringWindowToTop(IntPtr hWnd);
+    private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    private static extern bool IsIconic(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    [DllImport("kernel32.dll")]
-    private static extern uint GetCurrentThreadId();
-
-    [DllImport("user32.dll")]
-    private static extern bool AllowSetForegroundWindow(int dwProcessId);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
     [DllImport("user32.dll")]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
@@ -52,8 +38,8 @@ public static class NativeKeySender
     private const int INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_SCANCODE = 0x0008;
-    private const int SW_RESTORE = 9;
-    private const byte VK_MENU = 0x12;
+    private const uint WM_KEYDOWN = 0x0100;
+    private const uint WM_KEYUP = 0x0101;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -74,112 +60,48 @@ public static class NativeKeySender
         public uint unused2;
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
-
-    [DllImport("user32.dll")]
-    private static extern bool IsWindowVisible(IntPtr hWnd);
-
-    private static IntPtr FindCs2Window()
+    public static IntPtr FindCs2Window()
     {
         try
         {
             var processes = Process.GetProcessesByName("cs2");
-            var pids = new System.Collections.Generic.HashSet<uint>();
-            foreach (var p in processes)
-            {
-                pids.Add((uint)p.Id);
-                if (p.MainWindowHandle != IntPtr.Zero)
-                    return p.MainWindowHandle;
-            }
+            if (processes.Length == 0) return IntPtr.Zero;
 
+            uint targetPid = (uint)processes[0].Id;
             IntPtr found = IntPtr.Zero;
-            if (pids.Count > 0)
+
+            EnumWindows((hWnd, lParam) =>
             {
-                EnumWindows((hWnd, lParam) =>
+                GetWindowThreadProcessId(hWnd, out uint pid);
+                if (pid == targetPid)
                 {
-                    GetWindowThreadProcessId(hWnd, out uint pid);
-                    if (pids.Contains(pid) && IsWindowVisible(hWnd))
-                    {
-                        found = hWnd;
-                        return false;
-                    }
-                    return true;
-                }, IntPtr.Zero);
-            }
+                    found = hWnd;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
 
-            if (found != IntPtr.Zero) return found;
+            return found;
         }
-        catch { }
-
-        IntPtr hwnd = FindWindow("SDL_app", "Counter-Strike 2");
-        if (hwnd != IntPtr.Zero) return hwnd;
-
-        hwnd = FindWindow(null, "Counter-Strike 2");
-        if (hwnd != IntPtr.Zero) return hwnd;
-
-        return FindWindow("Valve001", null);
+        catch
+        {
+            return IntPtr.Zero;
+        }
     }
 
-    private static bool FocusCs2Window(IntPtr cs2Hwnd)
+    public static void FocusWindow(IntPtr cs2Hwnd)
     {
-        if (cs2Hwnd == IntPtr.Zero) return false;
-        if (GetForegroundWindow() == cs2Hwnd) return true;
+        if (cs2Hwnd == IntPtr.Zero) return;
+        if (GetForegroundWindow() == cs2Hwnd) return;
 
         try
         {
-            AllowSetForegroundWindow(-1);
-            IntPtr fgHwnd = GetForegroundWindow();
-            uint curThread = GetCurrentThreadId();
-            uint fgThread = fgHwnd != IntPtr.Zero ? GetWindowThreadProcessId(fgHwnd, out _) : 0;
-            uint cs2Thread = GetWindowThreadProcessId(cs2Hwnd, out _);
-
-            bool attachedFg = false;
-            bool attachedCs2 = false;
-
-            try
-            {
-                if (fgThread != 0 && fgThread != curThread)
-                    attachedFg = AttachThreadInput(curThread, fgThread, true);
-                if (cs2Thread != 0 && cs2Thread != curThread)
-                    attachedCs2 = AttachThreadInput(curThread, cs2Thread, true);
-
-                if (IsIconic(cs2Hwnd))
-                    ShowWindow(cs2Hwnd, SW_RESTORE);
-
-                BringWindowToTop(cs2Hwnd);
-                if (!SetForegroundWindow(cs2Hwnd))
-                {
-                    // Bypass Windows foreground lock via synthetic Alt key state
-                    keybd_event(VK_MENU, 0, 0, UIntPtr.Zero);
-                    SetForegroundWindow(cs2Hwnd);
-                    BringWindowToTop(cs2Hwnd);
-                    keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                }
-            }
-            finally
-            {
-                if (attachedCs2) AttachThreadInput(curThread, cs2Thread, false);
-                if (attachedFg) AttachThreadInput(curThread, fgThread, false);
-            }
-
-            for (int i = 0; i < 16; i++)
-            {
-                if (GetForegroundWindow() == cs2Hwnd)
-                {
-                    Thread.Sleep(120);
-                    return true;
-                }
-                Thread.Sleep(15);
-            }
+            keybd_event(18, 0, 0, UIntPtr.Zero);
+            keybd_event(18, 0, 2, UIntPtr.Zero);
+            SetForegroundWindow(cs2Hwnd);
+            Thread.Sleep(60);
         }
         catch { }
-
-        return GetForegroundWindow() == cs2Hwnd;
     }
 
     public static void SendKeysToCs2(string[] keys)
@@ -187,14 +109,7 @@ public static class NativeKeySender
         try
         {
             IntPtr cs2Hwnd = FindCs2Window();
-            if (cs2Hwnd != IntPtr.Zero)
-            {
-                FocusCs2Window(cs2Hwnd);
-            }
-            else
-            {
-                AllowSetForegroundWindow(-1);
-            }
+            FocusWindow(cs2Hwnd);
 
             foreach (var keyStr in keys)
             {
@@ -204,32 +119,44 @@ public static class NativeKeySender
 
                 char c = cleanKey[0];
                 short vkCode = VkKeyScan(c);
-                byte vk = (byte)(vkCode & 0xFF);
-                if (c >= 'a' && c <= 'z')
-                {
-                    vk = (byte)char.ToUpperInvariant(c);
-                }
+                if (vkCode == -1) continue;
+
+                ushort vk = (ushort)(vkCode & 0xFF);
                 ushort scan = (ushort)MapVirtualKey(vk, 0);
 
-                // Send via DirectInput Scan Code + Virtual Key
+                // 1. DirectInput ScanCode Down via SendInput
                 INPUT[] downInput = new INPUT[1];
                 downInput[0].type = INPUT_KEYBOARD;
                 downInput[0].ki.wVk = 0;
                 downInput[0].ki.wScan = scan;
                 downInput[0].ki.dwFlags = KEYEVENTF_SCANCODE;
+                SendInput(1, downInput, Marshal.SizeOf(typeof(INPUT)));
 
+                // 2. Direct Window Message Queue KeyDown via PostMessage to CS2
+                if (cs2Hwnd != IntPtr.Zero)
+                {
+                    IntPtr lParamDown = (IntPtr)(1 | (scan << 16));
+                    PostMessage(cs2Hwnd, WM_KEYDOWN, (IntPtr)vk, lParamDown);
+                }
+
+                Thread.Sleep(60);
+
+                // 3. DirectInput ScanCode Up via SendInput
                 INPUT[] upInput = new INPUT[1];
                 upInput[0].type = INPUT_KEYBOARD;
                 upInput[0].ki.wVk = 0;
                 upInput[0].ki.wScan = scan;
                 upInput[0].ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-
-                SendInput(1, downInput, Marshal.SizeOf(typeof(INPUT)));
-                keybd_event(vk, (byte)scan, 0, UIntPtr.Zero);
-                Thread.Sleep(75);
                 SendInput(1, upInput, Marshal.SizeOf(typeof(INPUT)));
-                keybd_event(vk, (byte)scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(35);
+
+                // 4. Direct Window Message Queue KeyUp via PostMessage to CS2
+                if (cs2Hwnd != IntPtr.Zero)
+                {
+                    IntPtr lParamUp = (IntPtr)(1 | (scan << 16) | (1 << 30) | (1 << 31));
+                    PostMessage(cs2Hwnd, WM_KEYUP, (IntPtr)vk, lParamUp);
+                }
+
+                Thread.Sleep(40);
             }
         }
         catch (Exception ex)
