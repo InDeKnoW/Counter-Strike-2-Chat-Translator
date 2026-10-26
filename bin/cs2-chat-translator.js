@@ -188,7 +188,7 @@ function findCs2Root() {
       ".local/share/Steam/steamapps/common/Counter-Strike Global Offensive/game/csgo"
     );
   }
-  const drives = ["C:", "D:", "E:", "F:", "G:", "H:"];
+  const drives = "CDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `${l}:`);
   const subpaths = [
     "SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo",
     "Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\csgo",
@@ -442,7 +442,7 @@ function escapeForCfg(text) {
   return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-let localPlayerName = "FFT_InDeKnoW";
+let localPlayerName = "";
 const recentBotMessages = new Set();
 
 function writeChatCfg({ message, team = false }) {
@@ -2612,7 +2612,7 @@ const INDEX_HTML = String.raw`<!doctype html>
         fetch('/api/config').then(r => r.json()),
         fetch('/api/status').then(r => r.json())
       ]);
-      playerNameInput.value = cfgRes.playerName || 'FFT_InDeKnoW';
+      playerNameInput.value = cfgRes.playerName || '';
       logPathInput.value = cfgRes.logPath || '';
       cfgDirInput.value  = cfgRes.cfgDir || '';
       bindKeyInput.value = cfgRes.bindKey || '';
@@ -2648,7 +2648,7 @@ const INDEX_HTML = String.raw`<!doctype html>
     saveBtn.disabled = true;
     try {
       const body = {
-        playerName: playerNameInput.value.trim() || 'FFT_InDeKnoW',
+        playerName: playerNameInput.value.trim() || '',
         logPath: logPathInput.value.trim(),
         cfgDir:  cfgDirInput.value.trim(),
         bindKey: bindKeyInput.value.trim() || 'o',

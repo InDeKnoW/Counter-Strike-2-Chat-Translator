@@ -5,7 +5,10 @@ $rootDir = "C:\Users\istva\Documents\cs2-chat-translator"
 $distDir = "$rootDir\dist\CS2-Chat-Translator"
 $zipPath = "$rootDir\dist\CS2-Chat-Translator-Portable.zip"
 
-if (Test-Path $distDir) { Remove-Item -Recurse -Force $distDir }
+if (Test-Path $distDir) { 
+    try { Remove-Item -Recurse -Force $distDir -ErrorAction Stop } 
+    catch { Get-ChildItem -Path $distDir -Recurse -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue }
+}
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 
 New-Item -ItemType Directory -Path $distDir -Force | Out-Null
