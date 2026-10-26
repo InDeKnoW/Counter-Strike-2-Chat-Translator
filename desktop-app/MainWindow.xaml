@@ -11,7 +11,7 @@
         WindowStyle="None"
         Background="#0B0B0C"
         Foreground="#ECEEF2"
-        Topmost="True"
+        Topmost="False"
         WindowStartupLocation="CenterScreen">
 
     <WindowChrome.WindowChrome>

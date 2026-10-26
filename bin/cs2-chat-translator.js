@@ -470,8 +470,7 @@ function pressBindKey() {
       path.join(__dirname, "..", "CS2ChatTranslator.exe"),
       path.join(__dirname, "CS2ChatTranslator.exe"),
       path.join(__dirname, "..", "desktop-app", "bin", "Release", "net10.0-windows", "CS2ChatTranslator.exe"),
-      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe"),
-      path.join(__dirname, "KeySender.exe")
+      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe")
     ];
 
     let targetExe = null;
@@ -1958,7 +1957,7 @@ const INDEX_HTML = String.raw`<!doctype html>
     <button class="hud-btn" id="hudBtn" title="HUD nézet: felső fejléc és alsó küldősáv együttes elrejtése / megjelenítése (Gyorsgomb: H)">
       <span>📐 HUD</span>
     </button>
-    <button class="tool-btn active" id="pinBtn" title="Mindig felül (Always on Top)">📌</button>
+    <button class="tool-btn" id="pinBtn" title="Mindig felül (Always on Top)">📌</button>
     <button class="phone-btn" id="phoneBtn" title="Telefonos csatlakozás (QR kód)">
       <span>📱 Telefon</span>
     </button>
@@ -2408,7 +2407,7 @@ const INDEX_HTML = String.raw`<!doctype html>
   }
 
   // Pin button (Always on top)
-  let isPinned = true;
+  let isPinned = false;
   const pinBtn = document.getElementById('pinBtn');
   if (pinBtn) {
     pinBtn.addEventListener('click', (e) => {
@@ -2975,7 +2974,9 @@ function startWebServer(port) {
         const translated = resTr.text || text;
 
         writeChatCfg({ message: translated, team });
-        setTimeout(pressBindKey, 120);
+        if (!skipKey) {
+          setTimeout(pressBindKey, 150);
+        }
 
         log(
           sym.trans,

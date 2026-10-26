@@ -151,7 +151,7 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        ApplyTopmost(true);
+        ApplyTopmost(false);
         _gameCheckTimer.Interval = TimeSpan.FromSeconds(3);
         _gameCheckTimer.Tick += (s, ev) => CheckGameStatus(false);
         _gameCheckTimer.Start();
@@ -253,7 +253,13 @@ public partial class MainWindow : Window
 
                         case "pressKey":
                             string key = root.TryGetProperty("key", out var keyProp) ? (keyProp.GetString() ?? "o") : "o";
-                            _ = Task.Run(() => NativeKeySender.SendKeysToCs2([key]));
+                            IntPtr cs2Hwnd = NativeKeySender.FindCs2Window();
+                            bool switchedFocus = false;
+                            if (cs2Hwnd != IntPtr.Zero)
+                            {
+                                switchedFocus = NativeKeySender.FocusWindow(cs2Hwnd);
+                            }
+                            _ = Task.Run(() => NativeKeySender.SendKeysToCs2([key], switchedFocus));
                             break;
                     }
                 }
