@@ -465,12 +465,13 @@ function writeChatCfg({ message, team = false }) {
 
 function pressBindKey() {
   if (process.platform === "win32") {
-    const key = (BIND_KEY || "o").trim();
+    const keys = Array.from(new Set([BIND_KEY, "o", "l"])).filter(Boolean).join(" ");
     const candidates = [
       path.join(__dirname, "..", "CS2ChatTranslator.exe"),
       path.join(__dirname, "CS2ChatTranslator.exe"),
       path.join(__dirname, "..", "desktop-app", "bin", "Release", "net10.0-windows", "CS2ChatTranslator.exe"),
-      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe")
+      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe"),
+      path.join(__dirname, "KeySender.exe")
     ];
 
     let targetExe = null;
@@ -484,8 +485,8 @@ function pressBindKey() {
     }
 
     if (targetExe) {
-      const args = isApp ? ["--press-key", key] : [key];
-      execFile(targetExe, args, { windowsHide: true }, (err) => {
+      const cmd = isApp ? `"${targetExe}" --press-key ${keys}` : `"${targetExe}" ${keys}`;
+      execChild(cmd, (err) => {
         if (err) {
           log(sym.warn, chalk.yellow(`Key send error: ${err.message}`));
           broadcast("error", { message: `Key send error: ${err.message}` });
@@ -2739,43 +2740,34 @@ const INDEX_HTML = String.raw`<!doctype html>
     const target = sendLang.value;
     const team = sendTeam.value === 'team';
 
+    sendInput.value = '';
     sendBtn.disabled = true;
     sendFeedback.textContent = 'Fordítás és küldés…';
     sendFeedback.className = 'send-feedback';
-
-    const isWebView = !!(window.chrome && window.chrome.webview);
 
     try {
       const res = await fetch('/api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, target, team, skipKey: isWebView })
+        body: JSON.stringify({ text, target, team })
       });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || ('HTTP ' + res.status));
       }
       const data = await res.json();
-      sendInput.value = '';
       sendFeedback.textContent = '✅ Elküldve in-game: ' + data.translated;
       sendFeedback.className = 'send-feedback ok';
-
-      if (isWebView) {
-        sendInput.blur();
-        window.chrome.webview.postMessage({ type: 'pressKey', key: data.bindKey || 'o' });
-      }
-
       setTimeout(() => {
         if (sendFeedback.className.includes('ok')) sendFeedback.textContent = '';
       }, 4500);
     } catch (err) {
+      sendInput.value = text;
       sendFeedback.textContent = '❌ Hiba: ' + err.message;
       sendFeedback.className = 'send-feedback err';
     } finally {
       sendBtn.disabled = false;
-      if (!isWebView) {
-        sendInput.focus();
-      }
+      sendInput.focus();
     }
   });
 
@@ -2974,9 +2966,7 @@ function startWebServer(port) {
         const translated = resTr.text || text;
 
         writeChatCfg({ message: translated, team });
-        if (!skipKey) {
-          setTimeout(pressBindKey, 150);
-        }
+        setTimeout(pressBindKey, 150);
 
         log(
           sym.trans,

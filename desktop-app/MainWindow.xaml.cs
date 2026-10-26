@@ -102,14 +102,6 @@ public partial class MainWindow : Window
         try
         {
             var handle = new WindowInteropHelper(this).Handle;
-            if (handle != IntPtr.Zero)
-            {
-                // Pre-initialize WS_EX_LAYERED before WebView2 creates its child HWND
-                int exStyle = GetWindowLong32(handle, GWL_EXSTYLE);
-                SetWindowLong32(handle, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
-                SetLayeredWindowAttributes(handle, 0, 255, LWA_ALPHA);
-            }
-
             var source = HwndSource.FromHwnd(handle);
             source?.AddHook(WindowProc);
         }
@@ -187,12 +179,9 @@ public partial class MainWindow : Window
                 "CS2ChatTranslator",
                 "WebView2Data"
             );
-            // --disable-direct-composition ensures WebView2 renders into the HWND redirection surface
-            // so SetLayeredWindowAttributes (LWA_ALPHA) makes the entire window smoothly transparent
-            // while keeping 100% of mouse clicks working!
             var envOptions = new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions
             {
-                AdditionalBrowserArguments = "--disable-direct-composition --disable-features=DirectComposition,SpeechRecognition,msSpeechRecognition --disable-speech-api"
+                AdditionalBrowserArguments = "--disable-features=SpeechRecognition,msSpeechRecognition --disable-speech-api"
             };
             var env = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(null, userDataFolder, envOptions);
             await ChatWebView.EnsureCoreWebView2Async(env);
@@ -250,17 +239,6 @@ public partial class MainWindow : Window
                                 ApplyWindowAlpha(_currentOpacity);
                             }
                             break;
-
-                        case "pressKey":
-                            string key = root.TryGetProperty("key", out var keyProp) ? (keyProp.GetString() ?? "o") : "o";
-                            IntPtr cs2Hwnd = NativeKeySender.FindCs2Window();
-                            bool switchedFocus = false;
-                            if (cs2Hwnd != IntPtr.Zero)
-                            {
-                                switchedFocus = NativeKeySender.FocusWindow(cs2Hwnd);
-                            }
-                            _ = Task.Run(() => NativeKeySender.SendKeysToCs2([key], switchedFocus));
-                            break;
                     }
                 }
                 catch { }
@@ -309,18 +287,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            double safeOp = Math.Clamp(op, 0.15, 1.0);
-            var handle = new WindowInteropHelper(this).Handle;
-            if (handle != IntPtr.Zero)
-            {
-                int exStyle = GetWindowLong32(handle, GWL_EXSTYLE);
-                if ((exStyle & WS_EX_LAYERED) == 0)
-                {
-                    SetWindowLong32(handle, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
-                }
-                byte bAlpha = (byte)Math.Clamp((int)Math.Round(safeOp * 255.0), 38, 255);
-                SetLayeredWindowAttributes(handle, 0, bAlpha, LWA_ALPHA);
-            }
+            this.Opacity = 1.0;
         }
         catch { }
     }
