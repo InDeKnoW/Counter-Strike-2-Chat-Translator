@@ -74,7 +74,9 @@ A program TELJESEN HORDOZHATÓ: semmit sem kell telepítened a gépedre!
 2. Jobb klikk Counter-Strike 2 -> Tulajdonságok (Properties).
 3. Az "Általános" fülön az "Indítási beállítások"-hoz írd be:
    
-   -condebug
+   -condebug -netconport 2121
+
+   (A -netconport 2121 lehetővé teszi a 100% teljesen automata küldést gombnyomás nélkül!)
 
 4. Zárd be az ablakot.
 

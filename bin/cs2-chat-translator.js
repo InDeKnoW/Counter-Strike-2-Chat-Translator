@@ -29,6 +29,7 @@
  */
 
 import fs from "fs";
+import net from "net";
 import http from "http";
 import https from "https";
 import readline from "readline";
@@ -445,7 +446,34 @@ function escapeForCfg(text) {
 let localPlayerName = "";
 const recentBotMessages = new Set();
 
-function writeChatCfg({ message, team = false }) {
+function sendViaNetcon(command) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(600);
+    socket.connect(2121, "127.0.0.1", () => {
+      socket.write(`${command}\n`);
+      setTimeout(() => {
+        try { socket.destroy(); } catch {}
+        resolve(true);
+      }, 50);
+    });
+    socket.on("error", () => resolve(false));
+    socket.on("timeout", () => {
+      try { socket.destroy(); } catch {}
+      resolve(false);
+    });
+  });
+}
+
+let isNetconAvailable = false;
+async function checkNetcon() {
+  isNetconAvailable = await sendViaNetcon("echo [CS2ChatTranslator] NetCon ping");
+  return isNetconAvailable;
+}
+setInterval(checkNetcon, 6000);
+checkNetcon();
+
+async function writeChatCfg({ message, team = false }) {
   const safe = escapeForCfg(message);
   recentBotMessages.add(message.trim().toLowerCase());
   if (recentBotMessages.size > 80) {
@@ -453,14 +481,25 @@ function writeChatCfg({ message, team = false }) {
     recentBotMessages.delete(first);
   }
   const cmd = team ? `say_team "${safe}"` : `say "${safe}"`;
-  // Write clean UTF-8 WITHOUT BOM so Source 2 parser never chokes on the first line
+
+  // Always write cfg as backup/manual trigger
   fs.writeFileSync(
     CHAT_CFG,
     `${cmd}\r\n`,
     "utf8"
   );
   log(sym.cfg, `Wrote to cfg: ${team ? "say_team" : "say"} → ${message}`);
-  broadcast("cfg", { team, message });
+
+  // Try direct in-game execution via CS2 console NetCon (-netconport 2121)
+  const sentViaNetcon = await sendViaNetcon(cmd);
+  if (sentViaNetcon) {
+    log(sym.cfg, chalk.green(`[NetCon] In-game elküldve közvetlenül konzolon: ${cmd}`));
+    broadcast("cfg", { team, message, netcon: true });
+    return true;
+  }
+
+  broadcast("cfg", { team, message, netcon: false });
+  return false;
 }
 
 function pressBindKey() {
@@ -2766,7 +2805,11 @@ const INDEX_HTML = String.raw`<!doctype html>
         throw new Error(errJson.error || ('HTTP ' + res.status));
       }
       const data = await res.json();
-      sendFeedback.textContent = '✅ Elküldve in-game: ' + data.translated;
+      if (data.netcon) {
+        sendFeedback.textContent = '⚡ 100% Automatikusan elküldve in-game: ' + data.translated;
+      } else {
+        sendFeedback.textContent = '✅ Elküldve: ' + data.translated + ' (Nyomj [o]-t CS2-ben, vagy indítási opció: -netconport 2121)';
+      }
       sendFeedback.className = 'send-feedback ok';
 
       // Also notify host WPF desktop window directly if running inside WebView2
@@ -2979,8 +3022,10 @@ function startWebServer(port) {
         const resTr = await smartTranslate(text, target);
         const translated = resTr.text || text;
 
-        writeChatCfg({ message: translated, team });
-        setTimeout(pressBindKey, 150);
+        const sentDirect = await writeChatCfg({ message: translated, team });
+        if (!sentDirect && !skipKey) {
+          setTimeout(pressBindKey, 120);
+        }
 
         log(
           sym.trans,
@@ -2996,7 +3041,8 @@ function startWebServer(port) {
           translated,
           target,
           team,
-          bindKey: BIND_KEY
+          bindKey: BIND_KEY,
+          netcon: sentDirect
         });
       } catch (err) {
         sendJson(res, { error: err.message }, 500);
