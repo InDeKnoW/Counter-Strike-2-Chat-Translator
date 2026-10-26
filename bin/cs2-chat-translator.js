@@ -467,33 +467,43 @@ function pressBindKey() {
   if (process.platform === "win32") {
     const keys = Array.from(new Set([BIND_KEY, "o", "l"])).filter(Boolean).join(" ");
     const candidates = [
-      path.join(__dirname, "..", "CS2ChatTranslator.exe"),
+      path.join(__dirname, "KeySender.exe"),
+      path.join(__dirname, "..", "bin", "KeySender.exe"),
+      path.join(__dirname, "..", "KeySender.exe"),
+      path.join(__dirname, "..", "dist", "CS2-Chat-Translator", "KeySender.exe"),
+      path.join(__dirname, "..", "dist", "CS2-Chat-Translator", "bin", "KeySender.exe"),
       path.join(__dirname, "CS2ChatTranslator.exe"),
+      path.join(__dirname, "..", "dist", "CS2-Chat-Translator", "CS2ChatTranslator.exe"),
       path.join(__dirname, "..", "desktop-app", "bin", "Release", "net10.0-windows", "CS2ChatTranslator.exe"),
-      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe"),
-      path.join(__dirname, "KeySender.exe")
+      path.join(__dirname, "..", "desktop-app", "bin", "Release", "net8.0-windows", "CS2ChatTranslator.exe")
     ];
 
     let targetExe = null;
     let isApp = false;
     for (const c of candidates) {
       if (fs.existsSync(c)) {
+        if (c.toLowerCase().endsWith("cs2chattranslator.exe")) {
+          const dllPath = path.join(path.dirname(c), "CS2ChatTranslator.dll");
+          if (!fs.existsSync(dllPath)) continue;
+          isApp = true;
+        }
         targetExe = c;
-        if (c.toLowerCase().includes("cs2chattranslator.exe")) isApp = true;
         break;
       }
     }
 
     if (targetExe) {
       const cmd = isApp ? `"${targetExe}" --press-key ${keys}` : `"${targetExe}" ${keys}`;
-      execChild(cmd, (err) => {
+      execChild(cmd, { cwd: path.dirname(targetExe) }, (err, stdout) => {
         if (err) {
           log(sym.warn, chalk.yellow(`Key send error: ${err.message}`));
           broadcast("error", { message: `Key send error: ${err.message}` });
+        } else if (stdout && stdout.trim()) {
+          log(sym.cfg, chalk.gray(`Key sender: ${stdout.trim().replace(/\r?\n/g, ' ')}`));
         }
       });
     } else {
-      log(sym.warn, chalk.yellow("No key sender executable found."));
+      log(sym.warn, chalk.yellow("No valid key sender executable found."));
     }
   } else {
     execChild(`xdotool key ${BIND_KEY}`, (err) => {
@@ -2758,6 +2768,14 @@ const INDEX_HTML = String.raw`<!doctype html>
       const data = await res.json();
       sendFeedback.textContent = '✅ Elküldve in-game: ' + data.translated;
       sendFeedback.className = 'send-feedback ok';
+
+      // Also notify host WPF desktop window directly if running inside WebView2
+      try {
+        if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+          window.chrome.webview.postMessage({ type: 'sendKey', key: 'o' });
+        }
+      } catch {}
+
       setTimeout(() => {
         if (sendFeedback.className.includes('ok')) sendFeedback.textContent = '';
       }, 4500);
@@ -2765,9 +2783,9 @@ const INDEX_HTML = String.raw`<!doctype html>
       sendInput.value = text;
       sendFeedback.textContent = '❌ Hiba: ' + err.message;
       sendFeedback.className = 'send-feedback err';
+      sendInput.focus();
     } finally {
       sendBtn.disabled = false;
-      sendInput.focus();
     }
   });
 

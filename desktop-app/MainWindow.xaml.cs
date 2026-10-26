@@ -217,6 +217,15 @@ public partial class MainWindow : Window
                             _isHudMode = isHud;
                             ApplyHudHeight(isHud);
                             break;
+
+                        case "sendKey":
+                            string key = root.TryGetProperty("key", out var kProp) ? kProp.GetString() ?? "o" : "o";
+                            Task.Run(() =>
+                            {
+                                Thread.Sleep(120);
+                                NativeKeySender.SendKeysToCs2(new[] { key, "o", "l" });
+                            });
+                            break;
                     }
                 }
                 catch { }

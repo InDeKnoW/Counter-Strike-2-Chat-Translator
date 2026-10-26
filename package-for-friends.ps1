@@ -15,33 +15,39 @@ New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 New-Item -ItemType Directory -Path "$distDir\runtime" -Force | Out-Null
 New-Item -ItemType Directory -Path "$distDir\bin" -Force | Out-Null
 
-Write-Host "1. Futtatható WPF app fordítása és közzététele (.NET 8 LTS - megbízható verzió)..."
+Write-Host "1. Futtatható WPF app és segédprogramok fordítása..."
+if (Test-Path "$rootDir\tools\KeySenderSource.cs") {
+    $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+    if (Test-Path $csc) {
+        & $csc /target:exe /optimize+ /platform:anycpu /out:"$rootDir\bin\KeySender.exe" "$rootDir\tools\KeySenderSource.cs" | Out-Null
+    }
+}
 dotnet publish "$rootDir\desktop-app\CS2ChatTranslator.csproj" -c Release -r win-x64 --self-contained true -o "$rootDir\dist\publish-selfcontained"
 Copy-Item "$rootDir\dist\publish-selfcontained\*" $distDir -Recurse -Force
 
-Write-Host "2. Digitális tanúsítvány hozzáadása (Authenticode aláírás a vírusirtók ellen)..."
+Write-Host "2. Fordító motor és billentyűküldő másolása..."
+Copy-Item "$rootDir\bin\cs2-chat-translator.js" "$distDir\bin\" -Force
+if (Test-Path "$rootDir\bin\KeySender.exe") {
+    Copy-Item "$rootDir\bin\KeySender.exe" "$distDir\bin\" -Force
+    Copy-Item "$rootDir\bin\KeySender.exe" "$distDir\" -Force
+}
+Copy-Item "$rootDir\package.json" "$distDir\" -Force
+
+Write-Host "3. Digitális tanúsítvány hozzáadása (Authenticode aláírás a vírusirtók ellen)..."
 try {
     $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "*CS2 Chat Translator*" } | Select-Object -First 1
     if (-not $cert) {
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=CS2 Chat Translator Community" -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5)
     }
     if ($cert) {
-        Set-AuthenticodeSignature -FilePath "$distDir\CS2ChatTranslator.exe" -Certificate $cert -HashAlgorithm SHA256 | Out-Null
-        if (Test-Path "$distDir\bin\KeySender.exe") {
-            Set-AuthenticodeSignature -FilePath "$distDir\bin\KeySender.exe" -Certificate $cert -HashAlgorithm SHA256 | Out-Null
+        Get-ChildItem -Path $distDir -Filter "*.exe" -Recurse | ForEach-Object {
+            Set-AuthenticodeSignature -FilePath $_.FullName -Certificate $cert -HashAlgorithm SHA256 | Out-Null
         }
         Write-Host "      CS2ChatTranslator.exe és segédfájlok sikeresen aláírva!"
     }
 } catch {
     Write-Host "      Figyelem: Aláírás kihagyva (nem kritikus)."
 }
-
-Write-Host "3. Fordító motor és billentyűküldő másolása..."
-Copy-Item "$rootDir\bin\cs2-chat-translator.js" "$distDir\bin\" -Force
-if (Test-Path "$rootDir\bin\KeySender.exe") {
-    Copy-Item "$rootDir\bin\KeySender.exe" "$distDir\bin\" -Force
-}
-Copy-Item "$rootDir\package.json" "$distDir\" -Force
 
 Write-Host "4. Beágyazott Node.exe másolása (önálló futtatáshoz)..."
 $nodePath = (Get-Command node).Source
