@@ -2975,9 +2975,7 @@ function startWebServer(port) {
         const translated = resTr.text || text;
 
         writeChatCfg({ message: translated, team });
-        if (!skipKey) {
-          setTimeout(pressBindKey, 100);
-        }
+        setTimeout(pressBindKey, 120);
 
         log(
           sym.trans,

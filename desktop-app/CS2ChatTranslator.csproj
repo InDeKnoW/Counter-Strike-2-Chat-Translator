@@ -9,6 +9,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyTitle>CS2 Chat Translator</AssemblyTitle>
     <Product>CS2 Chat Translator</Product>
     <Description>CS2 In-Game Chat Translator Overlay</Description>
