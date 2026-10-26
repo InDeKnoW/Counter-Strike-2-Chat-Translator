@@ -2770,11 +2770,7 @@ const INDEX_HTML = String.raw`<!doctype html>
       sendFeedback.className = 'send-feedback ok';
 
       // Also notify host WPF desktop window directly if running inside WebView2
-      try {
-        if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
-          window.chrome.webview.postMessage({ type: 'sendKey', key: 'o' });
-        }
-      } catch {}
+      // single sender via backend
 
       setTimeout(() => {
         if (sendFeedback.className.includes('ok')) sendFeedback.textContent = '';
