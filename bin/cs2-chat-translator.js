@@ -737,9 +737,10 @@ Rules:
   // 1. Google Gemini Flash AI (only if user configured an API key)
   if (TRANSLATION_ENGINE === "gemini" && GEMINI_API_KEY) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      const model = "gemini-3.8-flash";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
       const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 2500);
+      const t = setTimeout(() => controller.abort(), 3500);
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -757,8 +758,15 @@ Rules:
           if (cand.startsWith('"') && cand.endsWith('"')) cand = cand.slice(1, -1).trim();
           return { text: cand, from: { language: { iso: isCyrillic ? "ru" : "unknown" } } };
         }
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        const errMsg = errData?.error?.message || `HTTP ${resp.status}`;
+        log(sym.warn, chalk.red(`[Gemini AI Hiba]: ${errMsg}`));
+        broadcast("error", { message: `Gemini API: ${errMsg}` });
       }
-    } catch { /* fallback */ }
+    } catch (err) {
+      log(sym.warn, chalk.yellow(`Gemini hívási hiba: ${err.message}`));
+    }
   }
 
   // 2. Groq Llama 3 AI (only if user configured an API key)
