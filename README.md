@@ -1,6 +1,7 @@
 # 🎮 Counter-Strike 2 - Chat Translator & HUD Overlay
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011%20(x64)-blue.svg)](#)
+[![Download Latest](https://img.shields.io/github/v/release/InDeKnoW/Counter-Strike-2-Chat-Translator?color=success&label=Let%C3%B6lt%C3%A9s%20(v1.3.0%20Portable))](https://github.com/InDeKnoW/Counter-Strike-2-Chat-Translator/releases/latest)
 [![CS2 Compatible](https://img.shields.io/badge/Counter--Strike%202-Compatible-orange.svg)](#)
 [![Translation](https://img.shields.io/badge/Engine-100%25%20Free%20Universal%20Smart%20AI-green.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
